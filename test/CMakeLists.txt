@@ -6,5 +6,5 @@ foreach(v ${all_tests})
     string(REGEX REPLACE "test/" "" target_name ${relative_path})
     string(REGEX REPLACE ".cpp" "" target_name ${target_name})
 
-    add_executable(${target_name} ${v})
+    add_executable(${target_name} ${v} ../include/client.h ../include/common.h ../include/panic.h ../include/panic.h ../include/gtream.h ../include/bytes.h ../include/file.h ../include/list.h ../include/gand.h ../include/heap.h ../include/hashtable.h ../include/avl.h ../include/gset.h)
 endforeach()
