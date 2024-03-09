@@ -1,0 +1,73 @@
+#ifndef BLOCKING_QUEUE_H
+#define BLOCKING_QUEUE_H
+
+#pragma once
+
+#include <mutex>
+#include <queue>
+#include <shared_mutex>
+
+namespace gedis {
+
+template<typename T>
+class blocking_queue : protected std::queue<T> {
+  public:
+    // shared_mutex接口实现两种lock实现读写锁
+    using wlock = std::unique_lock<std::shared_mutex>;
+    using rlock = std::shared_lock<std::shared_mutex>;
+
+  public:
+    blocking_queue() = default;
+    ~blocking_queue() { clear(); }
+    // 拷贝和移动的构造函数和复制运算符用不到
+    blocking_queue(const blocking_queue &) = delete;
+    blocking_queue(blocking_queue &&) = delete;
+    blocking_queue &operator=(const blocking_queue &) = delete;
+    blocking_queue &operator=(blocking_queue &&) = delete;
+
+    bool empty() const {
+        rlock lock(mtx);
+        return std::queue<T>::empty();
+    }
+
+    size_t size() const {
+        rlock lock(mtx);
+        return std::queue<T>::size();
+    }
+
+  public:
+    void clear() {
+        wlock lock(mtx);
+        while(!std::queue<T>::empty()) {
+            std::queue<T>::pop();
+        }
+    }
+
+    void push(const T &obj) {
+        wlock lock(mtx);
+        std::queue<T>::push(obj);
+    }
+
+    template<typename... Args>
+    void empalce(Args &&...args) {
+        wlock lock(mtx);
+        std::queue<T>::emplace(std::forward<Args>(args)...);    // 完美转发
+    }
+
+    bool pop(T &holder) {
+        wlock lock(mtx);
+        if(std::queue<T>::empty()) {
+            return false;
+        }
+        holder = std::move(std::queue<T>::front());
+        std::queue<T>::pop();
+        return true;
+    }
+
+  private:
+    mutable std::shared_mutex mtx;
+};
+
+} // namespace gedis
+
+#endif
